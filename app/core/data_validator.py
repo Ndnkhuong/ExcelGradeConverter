@@ -138,33 +138,20 @@ def classify_score(
                 column=header,
             ),
         )
-    # if not is_number(cell.value):
-    #     return (
-    #         "skip",
-    #         None,
-    #         ValidationIssue(
-    #             SEVERITY_ERROR,
-    #             "SCORE_NOT_NUMERIC",
-    #             f"Điểm “{header}” của {student_name} không phải số. Ứng dụng không tự sửa.",
-    #             sheet=sheet,
-    #             row=cell.row,
-    #             column=header,
-    #         ),
-    #     )
-    # if score_out_of_range(float(cell.value), score_min, score_max):
-    #     return (
-    #         "skip",
-    #         None,
-    #         ValidationIssue(
-    #             SEVERITY_ERROR,
-    #             "SCORE_OUT_OF_RANGE",
-    #             (
-    #                 f"Điểm “{header}” của {student_name} là {cell.value}, "
-    #                 f"nằm ngoài thang {score_min:g}–{score_max:g}."
-    #             ),
-    #             sheet=sheet,
-    #             row=cell.row,
-    #             column=header,
-    #         ),
-    #     )
+    if is_number(cell.value) and score_out_of_range(float(cell.value), score_min, score_max):
+        return (
+            "skip",
+            None,
+            ValidationIssue(
+                SEVERITY_ERROR,
+                "SCORE_OUT_OF_RANGE",
+                (
+                    f"Điểm “{header}” của {student_name} là {cell.value}, "
+                    f"nằm ngoài thang {score_min:g}–{score_max:g}."
+                ),
+                sheet=sheet,
+                row=cell.row,
+                column=header,
+            ),
+        )
     return "update", cell.value, None

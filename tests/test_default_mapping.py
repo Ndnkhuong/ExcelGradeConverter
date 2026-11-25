@@ -230,6 +230,117 @@ class TestDefaultScoreMapping(unittest.TestCase):
 
         out_wb.close()
 
+    def test_text_and_mixed_values_export(self) -> None:
+        """Đảm bảo chuyển được cả dữ liệu văn bản (mức đạt, nhận xét) lẫn số."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_dir = Path(tmp)
+            with patch.dict(os.environ, {"APPDATA": str(tmp_dir / "appdata")}):
+                file_a = tmp_dir / "source_text.xlsx"
+                file_b = tmp_dir / "dest_text.xlsx"
+                output = tmp_dir / "out_text.xlsx"
+
+                wb_a = Workbook()
+                ws_a = wb_a.active
+                ws_a.title = "Sheet1"
+                ws_a.append(["STT", "Họ và tên", "Điểm GK", "Mức đạt GK", "Nhận xét GK"])
+                ws_a.append([1, "Hà Kiều Anh", 9.5, "T", "Đọc tốt các âm, vần và tiếng."])
+                ws_a.append([2, "Bùi Nguyễn Thảo", 8.0, "H", "Có tiến bộ về đọc, nhận biết âm."])
+                wb_a.save(file_a)
+
+                wb_b = Workbook()
+                ws_b = wb_b.active
+                ws_b.title = "Sheet1"
+                ws_b.append(["STT", "Họ và tên", "Điểm GK", "Mức đạt GK", "Nhận xét GK"])
+                ws_b.append([1, "Bùi Nguyễn Thảo", None, "H", None])
+                ws_b.append([2, "Hà Kiều Anh", None, None, None])
+                wb_b.save(file_b)
+
+                engine = ConversionEngine(SettingsStore(tmp_dir / "settings.json"))
+                session = ConversionSession(
+                    source_path=str(file_a),
+                    dest_path=str(file_b),
+                    source_sheet="Sheet1",
+                    dest_sheet="Sheet1",
+                    source_header_row=1,
+                    source_data_start=2,
+                    dest_header_row=1,
+                    dest_data_start=2,
+                    source_name_key="2",
+                    dest_name_key="2",
+                    mappings=[
+                        ColumnMappingItem("3", "3", "Điểm GK", "Điểm GK"),
+                        ColumnMappingItem("4", "4", "Mức đạt GK", "Mức đạt GK"),
+                        ColumnMappingItem("5", "5", "Nhận xét GK", "Nhận xét GK"),
+                    ],
+                )
+
+                _, _, match, review = engine.review(session)
+                self.assertEqual(match.matched_count, 2)
+                self.assertEqual(len(review.errors), 0)
+                # Ô "H" trùng sẵn ở đích không bị cảnh báo ghi đè.
+                self.assertEqual(len(review.warnings), 0)
+
+                result = engine.export(session, output, acknowledge_warnings=False)
+                self.assertEqual(result.updated_cells, 6)
+
+                out_wb = load_workbook(output)
+                out_ws = out_wb["Sheet1"]
+                self.assertEqual(out_ws["C2"].value, 8.0)
+                self.assertEqual(out_ws["D2"].value, "H")
+                self.assertEqual(out_ws["E2"].value, "Có tiến bộ về đọc, nhận biết âm.")
+                self.assertEqual(out_ws["C3"].value, 9.5)
+                self.assertEqual(out_ws["D3"].value, "T")
+                self.assertEqual(out_ws["E3"].value, "Đọc tốt các âm, vần và tiếng.")
+                out_wb.close()
+
+    def test_text_export_into_horizontal_merged_cell(self) -> None:
+        """Ghi văn bản vào ô merge ngang trên cùng dòng đích mà không bị bỏ qua."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_dir = Path(tmp)
+            with patch.dict(os.environ, {"APPDATA": str(tmp_dir / "appdata")}):
+                file_a = tmp_dir / "src_merge.xlsx"
+                file_b = tmp_dir / "dst_merge.xlsx"
+                output = tmp_dir / "out_merge.xlsx"
+
+                wb_a = Workbook()
+                ws_a = wb_a.active
+                ws_a.title = "Sheet1"
+                ws_a.append(["Họ và tên", "Nhận xét GK"])
+                ws_a.append(["Hà Kiều Anh", "Đọc tốt các âm, vần."])
+                wb_a.save(file_a)
+
+                wb_b = Workbook()
+                ws_b = wb_b.active
+                ws_b.title = "Sheet1"
+                ws_b["A1"] = "Họ và tên"
+                ws_b["B1"] = "Nhận xét GK"
+                ws_b.merge_cells("B1:C1")
+                ws_b["A2"] = "Hà Kiều Anh"
+                ws_b.merge_cells("B2:C2")
+                wb_b.save(file_b)
+
+                engine = ConversionEngine(SettingsStore(tmp_dir / "settings.json"))
+                session = ConversionSession(
+                    source_path=str(file_a),
+                    dest_path=str(file_b),
+                    source_sheet="Sheet1",
+                    dest_sheet="Sheet1",
+                    source_header_row=1,
+                    source_data_start=2,
+                    dest_header_row=1,
+                    dest_data_start=2,
+                    source_name_key="1",
+                    dest_name_key="1",
+                    mappings=[ColumnMappingItem("2", "3", "Nhận xét GK", "Nhận xét GK (C)")],
+                )
+                result = engine.export(session, output, acknowledge_warnings=True)
+                self.assertEqual(result.updated_cells, 1)
+
+                out_wb = load_workbook(output)
+                out_ws = out_wb["Sheet1"]
+                self.assertEqual(out_ws["B2"].value, "Đọc tốt các âm, vần.")
+                out_wb.close()
+
 
 if __name__ == "__main__":
     unittest.main()

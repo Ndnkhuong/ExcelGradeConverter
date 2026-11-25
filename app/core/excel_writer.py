@@ -80,17 +80,22 @@ def _apply_updates(path: Path, sheet_name: str, updates: list[CellUpdate]) -> in
             raise AppError(f"Sheet “{sheet_name}” không còn trong file đích.")
         worksheet = workbook[sheet_name]
         protected: set[tuple[int, int]] = set()
+        horizontal_anchors: dict[tuple[int, int], tuple[int, int]] = {}
         for merged in worksheet.merged_cells.ranges:
             min_col, min_row, max_col, max_row = range_boundaries(str(merged))
             for row in range(min_row, max_row + 1):
                 for column in range(min_col, max_col + 1):
                     if not (row == min_row and column == min_col):
-                        protected.add((row, column))
+                        if min_row == max_row:
+                            horizontal_anchors[(row, column)] = (min_row, min_col)
+                        else:
+                            protected.add((row, column))
         written = 0
         for update in updates:
-            if (update.row, update.column) in protected:
+            target = horizontal_anchors.get((update.row, update.column), (update.row, update.column))
+            if target in protected:
                 continue
-            cell = worksheet.cell(update.row, update.column)
+            cell = worksheet.cell(target[0], target[1])
             if _is_formula(cell):
                 continue
             cell.value = update.value

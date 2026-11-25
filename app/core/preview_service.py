@@ -78,13 +78,15 @@ def _overwrite_reason(dest_cell, new_value, student_name, header, sheet, issues)
         return "Ghi vào ô trống"
     if is_number(dest_cell.value) and is_number(new_value) and float(dest_cell.value) == float(new_value):
         return "Giá trị trùng với ô đích"
+    if isinstance(dest_cell.value, str) and isinstance(new_value, str) and dest_cell.value.strip() == new_value.strip():
+        return "Giá trị trùng với ô đích"
     issues.append(
         ValidationIssue(
             SEVERITY_WARNING,
             "OVERWRITE",
             (
                 f"Ô “{header}” của {student_name} trên file đích đang có dữ liệu "
-                f"và sẽ được thay bằng điểm nguồn nếu bạn xác nhận."
+                f"và sẽ được thay bằng dữ liệu nguồn nếu bạn xác nhận."
             ),
             sheet=sheet,
             row=dest_cell.row,

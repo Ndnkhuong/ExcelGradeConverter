@@ -16,7 +16,7 @@ from app.models.session import ConversionSession
 from app.models.student_record import MatchResult, StudentRecord
 from app.utils.logger import get_logger
 from app.utils.name_normalizer import display_name, normalize_person_name
-from app.utils.validators import is_number
+from app.utils.validators import is_blank
 
 
 class ConversionEngine:
@@ -96,7 +96,7 @@ class ConversionEngine:
         updates = [
             CellUpdate(cell.dest_row, cell.dest_column, cell.source_value)
             for cell in review.cells
-            if cell.action == ACTION_UPDATE and is_number(cell.source_value)
+            if cell.action == ACTION_UPDATE and not is_blank(cell.source_value)
         ]
         written = write_updates(
             session.dest_path,
