@@ -1,0 +1,122 @@
+QMainWindow, QDialog {
+    background: #f4f6f8;
+    color: #1a1d23;
+    font-family: "Segoe UI";
+    font-size: 10pt;
+}
+
+QWidget {
+    color: #1a1d23;
+    font-family: "Segoe UI";
+    font-size: 10pt;
+}
+
+QLabel#pageTitle {
+    font-size: 22px;
+    font-weight: 650;
+    color: #122033;
+}
+
+QLabel#pageSubtitle, QLabel#hint {
+    color: #526072;
+}
+
+QLabel#step {
+    color: #66788a;
+    padding: 6px 10px;
+    border-radius: 8px;
+}
+
+QLabel#stepCurrent {
+    color: #1f6feb;
+    background: #e8f1ff;
+    font-weight: 650;
+    padding: 6px 10px;
+    border-radius: 8px;
+}
+
+QFrame#card, QGroupBox {
+    background: #ffffff;
+    border: 1px solid #e3e8ee;
+    border-radius: 12px;
+}
+
+QGroupBox {
+    margin-top: 14px;
+    padding: 12px;
+    font-weight: 650;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 12px;
+    padding: 0 4px;
+}
+
+QPushButton {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    padding: 8px 14px;
+}
+
+QPushButton:hover {
+    background: #f3f6f9;
+}
+
+QPushButton:disabled {
+    color: #8b98a5;
+    background: #f6f8fa;
+}
+
+QPushButton#primary {
+    background: #1f6feb;
+    color: #ffffff;
+    border: none;
+    font-weight: 650;
+}
+
+QPushButton#primary:hover {
+    background: #1a62d6;
+}
+
+QPushButton#primary:disabled {
+    background: #b9d0f5;
+    color: #ffffff;
+}
+
+QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 6px 8px;
+    min-height: 22px;
+}
+
+QTableWidget {
+    background: #ffffff;
+    border: 1px solid #e3e8ee;
+    border-radius: 8px;
+    gridline-color: #eef2f6;
+    selection-background-color: #dbeafe;
+    selection-color: #122033;
+}
+
+QHeaderView::section {
+    background: #f7f9fb;
+    color: #3d4d5c;
+    padding: 6px;
+    border: none;
+    border-bottom: 1px solid #e3e8ee;
+    font-weight: 650;
+}
+
+QCheckBox {
+    spacing: 8px;
+}
+
+QListWidget {
+    background: #ffffff;
+    border: 1px solid #e3e8ee;
+    border-radius: 8px;
+}
