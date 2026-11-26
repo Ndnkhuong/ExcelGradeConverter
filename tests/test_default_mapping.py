@@ -216,7 +216,7 @@ class TestDefaultScoreMapping(unittest.TestCase):
         self.assertEqual(out_ws["D5"].value, "Giữ nguyên D5")
         self.assertEqual(out_ws["F5"].value, "=E5*2")
 
-        # Định dạng cột E và độ rộng cột được giữ nguyên.
+        # Định dạng hiển thị (font, fill, border, căn lề, độ rộng cột) được giữ nguyên; number_format chuẩn hóa về General.
         e2 = out_ws["E2"]
         self.assertEqual(e2.font.name, "Times New Roman")
         self.assertEqual(e2.font.size, 12)
@@ -224,7 +224,7 @@ class TestDefaultScoreMapping(unittest.TestCase):
         self.assertEqual(e2.fill.start_color.rgb[-6:], "FFF2CC")
         self.assertEqual(e2.border.left.style, "thin")
         self.assertEqual(e2.alignment.horizontal, "center")
-        self.assertEqual(e2.number_format, "0.00")
+        self.assertEqual(e2.number_format, "General")
         self.assertEqual(out_ws.column_dimensions["B"].width, 28)
         self.assertEqual(out_ws.column_dimensions["E"].width, 14)
 
@@ -278,9 +278,10 @@ class TestDefaultScoreMapping(unittest.TestCase):
                 self.assertEqual(match.matched_count, 2)
                 self.assertEqual(len(review.errors), 0)
                 # Ô "H" trùng sẵn ở đích không bị cảnh báo ghi đè.
-                self.assertEqual(len(review.warnings), 0)
+                overwrite_warnings = [w for w in review.warnings if w.code == "OVERWRITE"]
+                self.assertEqual(len(overwrite_warnings), 0)
 
-                result = engine.export(session, output, acknowledge_warnings=False)
+                result = engine.export(session, output, acknowledge_warnings=True)
                 self.assertEqual(result.updated_cells, 6)
 
                 out_wb = load_workbook(output)

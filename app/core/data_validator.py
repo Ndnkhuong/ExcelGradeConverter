@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.models.column_mapping import ColumnMappingItem
+from app.models.column_mapping import COLUMN_TYPE_ASSESSMENT, COLUMN_TYPE_NUMBER, ColumnMappingItem
 from app.models.excel_file import CellData
 from app.models.student_record import MatchResult
 from app.models.validation_result import (
@@ -11,7 +11,12 @@ from app.models.validation_result import (
     SEVERITY_WARNING,
     ValidationIssue,
 )
-from app.utils.validators import is_blank, is_number, score_out_of_range
+from app.utils.validators import (
+    convert_assessment_code,
+    is_blank,
+    parse_numeric_value,
+    score_out_of_range,
+)
 
 
 def validate_structure(
@@ -106,10 +111,14 @@ def classify_score(
     student_name: str,
     header: str,
     sheet: str,
+    column_type: str = COLUMN_TYPE_NUMBER,
+    auto_convert_assessment: bool = True,
 ) -> tuple[str, object, ValidationIssue | None]:
     """Trả về (hành động, giá trị ghi, lỗi nếu có).
 
-    Hành động là "update" hoặc "skip". Giá trị gốc được giữ nguyên khi ghi.
+    Hành động là "update" hoặc "skip".
+    - Giá trị số không bao giờ bị chuyển mã đánh giá.
+    - Mã đánh giá T/H/C chỉ chuyển khi column_type == COLUMN_TYPE_ASSESSMENT và auto_convert_assessment=True.
     """
     if cell is None or is_blank(cell.value):
         if cell is not None and cell.unresolved_formula:
@@ -138,20 +147,25 @@ def classify_score(
                 column=header,
             ),
         )
-    if is_number(cell.value) and score_out_of_range(float(cell.value), score_min, score_max):
-        return (
-            "skip",
-            None,
-            ValidationIssue(
-                SEVERITY_ERROR,
-                "SCORE_OUT_OF_RANGE",
-                (
-                    f"Điểm “{header}” của {student_name} là {cell.value}, "
-                    f"nằm ngoài thang {score_min:g}–{score_max:g}."
+    numeric_value = parse_numeric_value(cell.value)
+    if numeric_value is not None:
+        if score_out_of_range(float(numeric_value), score_min, score_max):
+            return (
+                "skip",
+                None,
+                ValidationIssue(
+                    SEVERITY_ERROR,
+                    "SCORE_OUT_OF_RANGE",
+                    (
+                        f"Điểm “{header}” của {student_name} là {cell.value}, "
+                        f"nằm ngoài thang {score_min:g}–{score_max:g}."
+                    ),
+                    sheet=sheet,
+                    row=cell.row,
+                    column=header,
                 ),
-                sheet=sheet,
-                row=cell.row,
-                column=header,
-            ),
-        )
+            )
+        return "update", numeric_value, None
+    if column_type == COLUMN_TYPE_ASSESSMENT:
+        return "update", convert_assessment_code(cell.value, auto_convert_assessment), None
     return "update", cell.value, None

@@ -8,7 +8,8 @@ from app.models.excel_file import SheetData
 from app.models.student_record import MatchResult
 from app.models.validation_result import SEVERITY_WARNING, ValidationIssue
 from app.core.data_validator import classify_score, validate_structure
-from app.utils.validators import is_blank, is_number
+from app.core.template_detector import find_hcm_code_column
+from app.utils.validators import is_blank, parse_numeric_value
 
 
 def build_review(
@@ -20,8 +21,23 @@ def build_review(
     match: MatchResult,
     score_min: float,
     score_max: float,
+    auto_convert_assessment: bool = True,
 ) -> ReviewResult:
     issues = validate_structure(source_name_key, dest_name_key, mappings, match)
+    if find_hcm_code_column(dest.columns) is None:
+        issues.append(
+            ValidationIssue(
+                SEVERITY_WARNING,
+                "MISSING_HCM_CODE_COLUMN",
+                (
+                    "Không tìm thấy cột “Mã HCM” trong sheet đích. "
+                    "Hãy kiểm tra lại dòng tiêu đề hoặc cấu hình cột của file đích nếu hệ thống import yêu cầu chuẩn hóa cột Mã HCM."
+                ),
+                sheet=dest.sheet_name,
+                row=dest.header_row,
+                column="Mã HCM",
+            )
+        )
     cells: list[PreviewCell] = []
     for pair in match.matched:
         for item in mappings:
@@ -34,6 +50,8 @@ def build_review(
                 pair.source.name_raw,
                 item.dest_header,
                 source.sheet_name,
+                column_type=item.column_type,
+                auto_convert_assessment=auto_convert_assessment,
             )
             if issue is not None:
                 issues.append(issue)
@@ -63,7 +81,7 @@ def build_review(
                     dest_column=int(item.dest_key),
                     dest_header=item.dest_header,
                     student_name=pair.dest.name_raw,
-                    source_value=None if source_cell is None else source_cell.value,
+                    source_value=value if action == ACTION_UPDATE else (None if source_cell is None else source_cell.value),
                     dest_value=None if dest_cell is None else dest_cell.value,
                     action=action if action == ACTION_UPDATE else ACTION_SKIP,
                     reason=reason,
@@ -76,7 +94,9 @@ def build_review(
 def _overwrite_reason(dest_cell, new_value, student_name, header, sheet, issues) -> str:
     if dest_cell is None or is_blank(dest_cell.value):
         return "Ghi vào ô trống"
-    if is_number(dest_cell.value) and is_number(new_value) and float(dest_cell.value) == float(new_value):
+    dest_num = parse_numeric_value(dest_cell.value)
+    new_num = parse_numeric_value(new_value)
+    if dest_num is not None and new_num is not None and float(dest_num) == float(new_num):
         return "Giá trị trùng với ô đích"
     if isinstance(dest_cell.value, str) and isinstance(new_value, str) and dest_cell.value.strip() == new_value.strip():
         return "Giá trị trùng với ô đích"

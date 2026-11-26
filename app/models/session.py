@@ -28,6 +28,7 @@ class ConversionSession:
     source_name_key: str = ""
     dest_name_key: str = ""
     mappings: list[ColumnMappingItem] = field(default_factory=list)
+    auto_convert_assessment: bool = True
     manual_pairs: list[tuple[int, int]] = field(default_factory=list)
     blocked_pairs: list[tuple[int, int]] = field(default_factory=list)
     profile_name: str = ""

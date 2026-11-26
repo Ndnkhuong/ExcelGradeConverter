@@ -6,9 +6,10 @@ from pathlib import Path
 
 from app.core.column_mapper import suggest_mapping
 from app.core.excel_reader import list_sheet_names, read_preview, read_sheet, suggest_header_row
-from app.core.excel_writer import CellUpdate, write_updates
+from app.core.excel_writer import CellUpdate, DataRegionSpec, HcmColumnSpec, write_updates_with_report
 from app.core.preview_service import build_review
 from app.core.student_matcher import match_students
+from app.core.template_detector import find_hcm_code_column
 from app.database.settings_store import SettingsStore
 from app.models.conversion_result import ACTION_UPDATE, ConversionResult, ReviewResult
 from app.models.excel_file import CellData, SheetData
@@ -16,7 +17,7 @@ from app.models.session import ConversionSession
 from app.models.student_record import MatchResult, StudentRecord
 from app.utils.logger import get_logger
 from app.utils.name_normalizer import display_name, normalize_person_name
-from app.utils.validators import is_blank
+from app.utils.validators import coerce_cell_value, is_blank
 
 
 class ConversionEngine:
@@ -76,6 +77,7 @@ class ConversionEngine:
             match,
             self.settings.score_min,
             self.settings.score_max,
+            auto_convert_assessment=session.auto_convert_assessment,
         )
         session.match = match
         session.review = review
@@ -87,23 +89,56 @@ class ConversionEngine:
         return source, dest, match, review
 
     def export(self, session: ConversionSession, output_path: Path, acknowledge_warnings: bool) -> ConversionResult:
-        _source, _dest, match, review = self.review(session)
+        _source, dest, match, review = self.review(session)
         allowed, message = review.can_export(acknowledge_warnings)
         if not allowed:
             from app.core.errors import AppError
 
             raise AppError(message)
         updates = [
-            CellUpdate(cell.dest_row, cell.dest_column, cell.source_value)
+            CellUpdate(cell.dest_row, cell.dest_column, coerce_cell_value(cell.source_value))
             for cell in review.cells
             if cell.action == ACTION_UPDATE and not is_blank(cell.source_value)
         ]
-        written = write_updates(
+        hcm_column = find_hcm_code_column(dest.columns)
+        hcm_spec: HcmColumnSpec | None = None
+        if hcm_column is not None:
+            dest_students = build_students(dest, session.dest_name_key, [])
+            if dest_students:
+                end_row = max(student.row_index for student in dest_students)
+            elif dest.rows:
+                end_row = max(row.row_index for row in dest.rows)
+            else:
+                end_row = 0
+            if end_row >= dest.data_start_row:
+                hcm_spec = HcmColumnSpec(
+                    column=hcm_column.index,
+                    start_row=dest.data_start_row,
+                    end_row=end_row,
+                )
+
+        # Xác định động toàn bộ vùng dữ liệu của sheet đích theo cấu trúc file mẫu đích.
+        data_region: DataRegionSpec | None = None
+        row_candidates = [row.row_index for row in dest.rows] + [u.row for u in updates]
+        col_candidates = [col.index for col in dest.columns] + [u.column for u in updates]
+        if row_candidates and col_candidates:
+            data_end_row = max(row_candidates)
+            if data_end_row >= dest.data_start_row:
+                data_region = DataRegionSpec(
+                    start_row=dest.data_start_row,
+                    end_row=data_end_row,
+                    start_col=min(col_candidates),
+                    end_col=max(col_candidates),
+                )
+
+        written, verified_numeric, verified_hcm, verified_region = write_updates_with_report(
             session.dest_path,
             output_path,
             session.dest_sheet,
             updates,
             session.source_path,
+            hcm_column=hcm_spec,
+            data_region=data_region,
         )
         result = ConversionResult(
             output_path=str(output_path),
@@ -112,6 +147,10 @@ class ConversionEngine:
             updated_cells=written,
             skipped_cells=sum(1 for cell in review.cells if cell.action != ACTION_UPDATE),
             mapping_name=session.profile_name,
+            numeric_cells_verified=verified_numeric,
+            hcm_column_found=hcm_column is not None,
+            hcm_cells_formatted=verified_hcm,
+            region_cells_formatted=verified_region,
         )
         session.last_result = result
         get_logger().info(

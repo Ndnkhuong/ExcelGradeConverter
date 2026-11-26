@@ -20,6 +20,11 @@ NAME_HEADERS = {
     "name",
 }
 
+HCM_CODE_HEADERS = {
+    "mã hcm",
+    "ma hcm",
+}
+
 
 def detect_header_row(grid: list[list[object]], max_rows: int = 30) -> int:
     """Chọn dòng có nhiều ô chữ nhất trong các dòng đầu. Trả về số dòng 1-based."""
@@ -52,4 +57,15 @@ def detect_name_column(columns: list[ColumnInfo]) -> str | None:
     for column in columns:
         if is_name_header(column.header):
             return column.key
+    return None
+
+
+def is_hcm_code_header(header: str) -> bool:
+    return normalize_header(header) in HCM_CODE_HEADERS
+
+
+def find_hcm_code_column(columns: list[ColumnInfo]) -> ColumnInfo | None:
+    for column in columns:
+        if is_hcm_code_header(column.header):
+            return column
     return None

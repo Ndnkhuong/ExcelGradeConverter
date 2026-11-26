@@ -55,3 +55,7 @@ class ConversionResult:
     updated_cells: int
     skipped_cells: int
     mapping_name: str = ""
+    numeric_cells_verified: int = 0
+    hcm_column_found: bool = False
+    hcm_cells_formatted: int = 0
+    region_cells_formatted: int = 0

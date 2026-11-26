@@ -4,9 +4,28 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.models.column_mapping import COLUMN_TYPE_ASSESSMENT, COLUMN_TYPE_NUMBER
 from app.models.excel_file import ColumnInfo, SheetData
 from app.utils.name_normalizer import normalize_header
+from app.utils.validators import ASSESSMENT_CODE_MAP, is_blank, parse_numeric_value
 from config import DEFAULT_DEST_SCORE_COLUMN, DEFAULT_SOURCE_SCORE_COLUMN
+
+_ASSESSMENT_HEADER_KEYWORDS = (
+    "mức đạt",
+    "muc dat",
+    "đánh giá",
+    "danh gia",
+    "xếp loại",
+    "xep loai",
+    "nhận xét",
+    "nhan xet",
+    "mức độ",
+    "muc do",
+    "năng lực",
+    "nang luc",
+    "phẩm chất",
+    "pham chat",
+)
 
 ALIAS_GROUPS = [
     {"giữa kỳ", "giữa kì", "giua ky", "giua ki", "gk", "điểm giữa kỳ", "điểm giữa kì", "diem giua ky"},
@@ -140,3 +159,45 @@ def find_column_by_header(columns: list[ColumnInfo], header: str) -> ColumnInfo 
     if not matches:
         return None
     return matches[0]
+
+
+def detect_column_type(
+    source: SheetData,
+    source_key: str,
+    source_header: str = "",
+    dest_header: str = "",
+) -> str:
+    """Tự nhận diện cột là điểm số (number) hay đánh giá bằng chữ (assessment)."""
+    numeric_count = 0
+    assessment_code_count = 0
+    other_text_count = 0
+    sampled = 0
+    for row in source.rows:
+        cell = row.get(source_key)
+        if cell is None or is_blank(cell.value):
+            continue
+        sampled += 1
+        if parse_numeric_value(cell.value) is not None:
+            numeric_count += 1
+        elif isinstance(cell.value, str):
+            code = cell.value.replace("\u00a0", " ").strip().upper()
+            if code in ASSESSMENT_CODE_MAP:
+                assessment_code_count += 1
+            else:
+                other_text_count += 1
+        if sampled >= 50:
+            break
+
+    if assessment_code_count > 0 and numeric_count == 0:
+        return COLUMN_TYPE_ASSESSMENT
+    if numeric_count > 0 and assessment_code_count == 0 and other_text_count == 0:
+        return COLUMN_TYPE_NUMBER
+    if other_text_count > 0 and numeric_count == 0:
+        return COLUMN_TYPE_ASSESSMENT
+
+    combined = f"{normalize_header(source_header)} {normalize_header(dest_header)}"
+    if any(keyword in combined for keyword in _ASSESSMENT_HEADER_KEYWORDS):
+        return COLUMN_TYPE_ASSESSMENT
+    if assessment_code_count + other_text_count > numeric_count:
+        return COLUMN_TYPE_ASSESSMENT
+    return COLUMN_TYPE_NUMBER

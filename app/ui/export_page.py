@@ -128,8 +128,24 @@ class ExportPage(Page):
         )
         self._output = output
         self.open_button.setEnabled(True)
+        numeric_note = (
+            f", xác minh {result.numeric_cells_verified} ô điểm kiểu số (Number)"
+            if result.numeric_cells_verified
+            else ""
+        )
+        region_note = (
+            f" Đã chuẩn hóa Number Format về General cho toàn bộ sheet đích ({result.region_cells_formatted} ô{numeric_note})."
+            if result.region_cells_formatted
+            else ""
+        )
+        hcm_note = (
+            f" Cột Mã HCM ({result.hcm_cells_formatted} ô) giữ nguyên giá trị gốc."
+            if result.hcm_column_found
+            else " Lưu ý: Không tìm thấy cột Mã HCM trong sheet đích."
+        )
         self.result.setText(
-            f"Đã xuất {output.name}. Đã ghi {result.updated_cells} ô cho {result.matched_count} học sinh. "
+            f"Đã xuất {output.name}. Đã ghi {result.updated_cells} ô cho {result.matched_count} học sinh."
+            f"{region_note}{hcm_note} "
             f"Bỏ qua {result.skipped_cells} ô. File nguồn và file đích gốc không bị thay đổi."
         )
         QMessageBox.information(self, "Xuất thành công", self.result.text())

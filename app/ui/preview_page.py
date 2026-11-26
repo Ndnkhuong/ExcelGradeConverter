@@ -27,8 +27,15 @@ class PreviewPage(Page):
         self.summary = QLabel("")
         self.summary.setWordWrap(True)
         layout.addWidget(self.summary)
+        self.auto_convert_checkbox = QCheckBox("Tự động chuyển mã đánh giá")
+        self.auto_convert_checkbox.setChecked(True)
+        self.auto_convert_checkbox.setToolTip(
+            "Khi bật: T → Hoàn thành tốt, H → Hoàn thành, C → Chưa hoàn thành (chỉ áp dụng cho cột đánh giá bằng chữ)."
+        )
+        self.auto_convert_checkbox.toggled.connect(self._toggle_auto_convert)
+        layout.addWidget(self.auto_convert_checkbox)
         self.tabs = QTabWidget()
-        self.updates = readonly_table(["Dòng đích", "Học sinh", "Cột", "Giá trị nguồn", "Giá trị đích hiện tại", "Ghi chú"])
+        self.updates = readonly_table(["Dòng đích", "Học sinh", "Cột", "Giá trị sẽ ghi", "Giá trị đích hiện tại", "Ghi chú"])
         self.skipped = readonly_table(["Dòng đích", "Học sinh", "Cột", "Giá trị nguồn", "Lý do bỏ qua"])
         self.warnings = readonly_table(["Mức", "Nội dung", "Vị trí"])
         self.tabs.addTab(self.updates, "Sẽ cập nhật")
@@ -39,8 +46,18 @@ class PreviewPage(Page):
         layout.addWidget(self.confirm)
 
     def on_enter(self) -> None:
+        self.auto_convert_checkbox.blockSignals(True)
+        self.auto_convert_checkbox.setChecked(self.ctx.session.auto_convert_assessment)
+        self.auto_convert_checkbox.blockSignals(False)
         self.ctx.engine.review(self.ctx.session)
         self.confirm.setChecked(self.ctx.session.acknowledge_warnings)
+        self._fill()
+
+    def _toggle_auto_convert(self, checked: bool) -> None:
+        self.ctx.session.auto_convert_assessment = bool(checked)
+        self.ctx.session.acknowledge_warnings = False
+        self.ctx.engine.review(self.ctx.session)
+        self.confirm.setChecked(False)
         self._fill()
 
     def on_next(self) -> bool:
