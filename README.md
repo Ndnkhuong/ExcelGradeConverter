@@ -140,3 +140,11 @@ File thực thi sau khi build sẽ nằm trong thư mục `dist\ExcelGradeConver
 | Không mở được file Excel (`File đang được chương trình khác giữ`) | Đóng file đó trong Microsoft Excel rồi thử lại. |
 | Không chọn được file `.xls` | Ứng dụng chỉ hỗ trợ `.xlsx` và `.xlsm`. Hãy mở file `.xls` bằng Excel và **Save As** sang `.xlsx`. |
 | Không tìm thấy cột hoặc lệch dòng dữ liệu | Kiểm tra lại mục **Dòng tiêu đề** và **Dòng bắt đầu dữ liệu** ở bước **1. Chọn file** (dòng dữ liệu phải nằm bên dưới dòng tiêu đề). |
+
+**❤️ Đồng hành cùng dự án**
+Công cụ được xây dựng với mong muốn hỗ trợ công việc hiệu quả và thuận tiện hơn.
+Nếu bạn thấy công cụ mang lại giá trị thiết thực, hãy ủng hộ dự án để góp phần duy trì, cải tiến và phát triển thêm các tính năng mới.
+Mỗi sự đóng góp đều là nguồn động viên quý báu. Xin cảm ơn!
+<img width="350" height="344" alt="image" src="https://github.com/user-attachments/assets/d1324039-5044-457e-a214-846d66fcd821" />
+1028665913 - Vietcombank
+
