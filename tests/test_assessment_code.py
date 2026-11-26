@@ -71,6 +71,11 @@ class TestConvertAssessmentCode(unittest.TestCase):
 
 
 class TestAssessmentPipelineAndPersistence(unittest.TestCase):
+    def setUp(self) -> None:
+        patcher = patch("app.core.excel_writer.normalize_sheet_with_excel_com")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def _build_files(self, tmp_dir: Path) -> tuple[Path, Path]:
         file_a = tmp_dir / "source_assess.xlsx"
         file_b = tmp_dir / "dest_assess.xlsx"

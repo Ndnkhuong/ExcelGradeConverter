@@ -26,6 +26,11 @@ from app.models.session import ConversionSession
 
 
 class TestHcmCodeColumn(unittest.TestCase):
+    def setUp(self) -> None:
+        patcher = patch("app.core.excel_writer.normalize_sheet_with_excel_com")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_find_hcm_code_column_variants(self) -> None:
         cols = [
             ColumnInfo(1, "A", "STT", "1"),

@@ -134,7 +134,7 @@ class ExportPage(Page):
             else ""
         )
         region_note = (
-            f" Đã chuẩn hóa Number Format về General cho toàn bộ sheet đích ({result.region_cells_formatted} ô{numeric_note})."
+            f" Đã chuẩn hóa toàn bộ sheet đích về General bằng Microsoft Excel ({result.region_cells_formatted} ô{numeric_note})."
             if result.region_cells_formatted
             else ""
         )

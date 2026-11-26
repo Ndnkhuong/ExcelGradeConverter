@@ -12,6 +12,7 @@ from openpyxl.cell.cell import Cell
 from openpyxl.utils import get_column_letter, range_boundaries
 
 from app.core.errors import AppError
+from app.core.excel_com import normalize_sheet_with_excel_com
 from app.utils.file_utils import assert_output_is_new, cleanup_temp
 from app.utils.logger import get_logger
 from app.utils.validators import coerce_cell_value, is_blank, is_number
@@ -108,6 +109,8 @@ def write_updates_with_report(
         written, written_cells, hcm_snapshots, sheet_snapshots = _apply_updates(
             temp_path, sheet_name, updates, hcm_column, data_region
         )
+        # Bước cuối cùng xử lý và lưu file: chuẩn hóa toàn bộ worksheet đích bằng Microsoft Excel COM.
+        normalize_sheet_with_excel_com(temp_path, sheet_name)
         shutil.copy2(temp_path, output)
     except PermissionError as exc:
         raise AppError(
@@ -123,6 +126,7 @@ def write_updates_with_report(
                 temp_path.unlink()
             except OSError:
                 cleanup_temp()
+    # Chỉ đọc (không lưu lại bằng openpyxl) để xác minh kết quả sau khi Excel COM đã lưu.
     total_verified, verified_numeric, verified_hcm, verified_sheet = verify_exported_cells(
         output,
         sheet_name,
@@ -132,7 +136,7 @@ def write_updates_with_report(
         verify_entire_sheet=True,
     )
     get_logger().info(
-        "Đã ghi %s ô vào file kết quả %s (chuẩn hóa General toàn bộ sheet đích %s ô, %s ô đã map, %s ô điểm Number, %s ô Mã HCM)",
+        "Đã ghi %s ô vào file kết quả %s qua Excel COM (General toàn bộ sheet đích %s ô, %s ô đã map, %s ô điểm Number, %s ô Mã HCM)",
         written,
         output.name,
         verified_sheet,
@@ -200,9 +204,7 @@ def verify_exported_cells(
             coord = f"{get_column_letter(column)}{row}"
             if (
                 cell.number_format != "General"
-                or cell.value != original_value
-                or type(cell.value) is not type(original_value)
-                or cell.data_type != original_data_type
+                or not _values_match(cell.value, cell.data_type, original_value, original_data_type)
             ):
                 invalid_hcm.append(coord)
 
@@ -218,11 +220,7 @@ def verify_exported_cells(
             coord = f"{get_column_letter(column)}{row}"
             if not verify_entire_sheet and cell.number_format != "General":
                 invalid_sheet_format.append(coord)
-            if (
-                cell.value != expected_value
-                or type(cell.value) is not type(expected_value)
-                or cell.data_type != expected_data_type
-            ):
+            if not _values_match(cell.value, cell.data_type, expected_value, expected_data_type):
                 invalid_sheet_value.append(coord)
         if not verify_entire_sheet:
             checked_sheet_cells = len(sheet_list)
@@ -352,6 +350,26 @@ def _apply_updates(
         return written, written_cells, hcm_snapshots, sheet_snapshots
     finally:
         workbook.close()
+
+
+def _values_match(
+    actual_value: object,
+    actual_type: str,
+    expected_value: object,
+    expected_type: str,
+) -> bool:
+    """So khớp giá trị và kiểu dữ liệu thật (chấp nhận 9 vs 9.0 sau khi Excel COM lưu XML)."""
+    if expected_value is None:
+        return actual_value is None
+    if is_number(expected_value):
+        return actual_type == "n" and is_number(actual_value) and float(actual_value) == float(expected_value)
+    if expected_type == "f":
+        return actual_type == "f" and actual_value == expected_value
+    return (
+        actual_type == expected_type
+        and type(actual_value) is type(expected_value)
+        and actual_value == expected_value
+    )
 
 
 def _is_formula(cell: Cell) -> bool:

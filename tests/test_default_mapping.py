@@ -115,6 +115,11 @@ def _create_template_b(path: Path) -> None:
 
 
 class TestDefaultScoreMapping(unittest.TestCase):
+    def setUp(self) -> None:
+        patcher = patch("app.core.excel_writer.normalize_sheet_with_excel_com")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_defaults_and_end_to_end_conversion(self) -> None:
         self.assertEqual(DEFAULT_SOURCE_HEADER_ROW, 13)
         self.assertEqual(DEFAULT_SOURCE_DATA_START, 14)

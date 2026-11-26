@@ -26,6 +26,11 @@ from app.utils.validators import coerce_cell_value, parse_numeric_value
 
 
 class TestNumericScoreTyping(unittest.TestCase):
+    def setUp(self) -> None:
+        patcher = patch("app.core.excel_writer.normalize_sheet_with_excel_com")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_parse_numeric_value_cases(self) -> None:
         # 1 & 2: Chuỗi số nguyên, dấu '.' và ',' -> int/float chính xác.
         self.assertIs(type(parse_numeric_value("9")), int)
