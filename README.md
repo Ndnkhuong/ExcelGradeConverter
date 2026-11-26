@@ -145,6 +145,6 @@ File thực thi sau khi build sẽ nằm trong thư mục `dist\ExcelGradeConver
 Công cụ được xây dựng với mong muốn hỗ trợ công việc hiệu quả và thuận tiện hơn.
 Nếu bạn thấy công cụ mang lại giá trị thiết thực, hãy ủng hộ dự án để góp phần duy trì, cải tiến và phát triển thêm các tính năng mới.
 Mỗi sự đóng góp đều là nguồn động viên quý báu. Xin cảm ơn!
-<img width="380" height="374" alt="image" src="https://github.com/user-attachments/assets/d1324039-5044-457e-a214-846d66fcd821" />
+<img width="350" height="344" alt="image" src="https://github.com/user-attachments/assets/d1324039-5044-457e-a214-846d66fcd821" />
 1028665913 - Vietcombank
 
