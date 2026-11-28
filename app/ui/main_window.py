@@ -5,9 +5,11 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QApplication,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QMainWindow,
@@ -126,6 +128,27 @@ class MainWindow(QMainWindow):
         footer_layout.addWidget(self.next_button)
         self.footer = footer
         layout.addWidget(footer)
+
+        author_footer = QFrame()
+        author_footer.setObjectName("authorFooter")
+        author_layout = QVBoxLayout(author_footer)
+        author_layout.setContentsMargins(16, 6, 16, 8)
+        author_layout.setSpacing(0)
+        self.author_label = QLabel(
+            '<b>Excel Grade Converter</b><br>'
+            'Developed by Ndnkhuong<br>'
+            'Link mã nguồn: <a href="https://github.com/Ndnkhuong/ExcelGradeConverter" '
+            'style="color:#1f6feb; text-decoration:none;">'
+            'https://github.com/Ndnkhuong/ExcelGradeConverter</a><br>'
+            'Liên hệ: 0962 439 389'
+        )
+        self.author_label.setObjectName("authorInfo")
+        self.author_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.author_label.setOpenExternalLinks(True)
+        self.author_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        author_layout.addWidget(self.author_label)
+        self.author_footer = author_footer
+        layout.addWidget(author_footer)
 
         self.pages[DASHBOARD].start_button.clicked.connect(self._start)
         self.pages[DASHBOARD].profile_button.clicked.connect(self._start_from_profile)
